@@ -321,12 +321,14 @@ class SimpleTextAndIcons:
     for i in bitmap_named:
         bitmap_builtin[bitmap_named[i][2]] = bitmap_named[i]
 
-    kanji_fonts = Font('./gfx/zpix.bdf')
-
     def __init__(self):
         self.bitmap_preloaded = [([], 0)]
         self.bitmaps_preloaded_unused = False
-
+        try:
+            self.kanji_fonts = Font('./gfx/zpix.bdf')
+        except FileNotFoundError as e:
+            self.kanji_fonts = None
+            print("Japanese/Chinese fonts not loaded, download https://github.com/SolidZORO/zpix-pixel-font to ./gfx/zpix.bdf", e)
     def add_preload_img(self, filename):
         """Still used by main, but deprecated. PLease use ":"-notation for bitmap() / bitmap_text()"""
         self.bitmap_preloaded.append(SimpleTextAndIcons.bitmap_img(filename))
@@ -351,7 +353,7 @@ class SimpleTextAndIcons:
 
             self.bitmaps_preloaded_unused = False
             return self.bitmap_preloaded[ord(ch)]
-        if ch not in SimpleTextAndIcons.char_offsets:
+        if ch not in SimpleTextAndIcons.char_offsets and self.kanji_fonts:
             # Use BDF font
             glyph = self.kanji_fonts.glyph(ch)
             if not glyph:

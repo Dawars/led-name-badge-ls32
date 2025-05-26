@@ -1187,7 +1187,6 @@ def repack_bitmaps_to_bytes(char_rows, char_widths):
     char_widths: list of widths in bits for each character (e.g. [8, 6, 7, ...])
     Returns: (packed_bytes, total_pixel_columns)
     """
-    num_chars = len(char_widths)
     num_rows = 11
     total_num_bytes = math.ceil(sum(char_widths) / 8)
     remainder = sum(char_widths) % 8
@@ -1199,6 +1198,12 @@ def repack_bitmaps_to_bytes(char_rows, char_widths):
             # Extract only the leftmost 'width' bits
             for bit in range(7, 7 - width, -1):
                 rows_bits[row_id].append((byte >> bit) & 1)
+    # add trailing zeros for last byte if it's not full
+    for row_id in range(num_rows):
+        trailing_zeros = 8 - remainder
+        for _ in range(trailing_zeros):
+            rows_bits[row_id].append(0)
+
     # Now, flatten row-wise into a single bitstream (row-major order)
     packed_bytes = []
 
@@ -1207,8 +1212,6 @@ def repack_bitmaps_to_bytes(char_rows, char_widths):
             byte = 0
             for bit in range(8):
                 byte = (byte << 1) | int(rows_bits[row_id][i * 8 + bit])
-            if i == total_num_bytes - 1:  # last char
-                byte <<= remainder  # pad remaining bits if row is short
             assert byte <= 255
             packed_bytes.append(byte)
 

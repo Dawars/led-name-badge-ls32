@@ -95,6 +95,7 @@ import sys
 import time
 from array import array
 from datetime import datetime
+from pathlib import Path
 
 from bdfparser import Font
 
@@ -324,11 +325,9 @@ class SimpleTextAndIcons:
     def __init__(self):
         self.bitmap_preloaded = [([], 0)]
         self.bitmaps_preloaded_unused = False
-        try:
-            self.kanji_fonts = Font('./gfx/zpix.bdf')
-        except FileNotFoundError as e:
-            self.kanji_fonts = None
-            print("Japanese/Chinese fonts not loaded, download https://github.com/SolidZORO/zpix-pixel-font to ./gfx/zpix.bdf", e)
+        self.kanji_fonts = []
+        for path in Path("./gfx/").glob("*.bdf"):
+            self.kanji_fonts.append(Font(str(path)))
     def add_preload_img(self, filename):
         """Still used by main, but deprecated. PLease use ":"-notation for bitmap() / bitmap_text()"""
         self.bitmap_preloaded.append(SimpleTextAndIcons.bitmap_img(filename))
@@ -355,9 +354,13 @@ class SimpleTextAndIcons:
             return self.bitmap_preloaded[ord(ch)]
         if ch not in SimpleTextAndIcons.char_offsets and self.kanji_fonts:
             # Use BDF font
-            glyph = self.kanji_fonts.glyph(ch)
+            for fonts in self.kanji_fonts:
+                glyph = fonts.glyph(ch)
+                if glyph:
+                    break
             if not glyph:
-                raise Exception('Unknown character %s' % ch)
+                print('Warning: Unknown character %s' % ch)
+                return self.bitmap_char("?")
             img = glyph.draw(2)
             img_cropped = img.crop(11+1, 11, 0, 0)  # width 11 + space, height 11
 

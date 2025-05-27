@@ -393,6 +393,9 @@ class SimpleTextAndIcons:
                     result.insert(0, 0)
                 result.extend(subchar)
             return tuple(result), width_chars
+        if ch not in SimpleTextAndIcons.char_offsets:
+            print('Warning: Unknown character %s' % ch)
+            return self.bitmap_char("?")
         o = SimpleTextAndIcons.char_offsets[ch]
         return SimpleTextAndIcons.font_11x44[o:o + 11], 8
 

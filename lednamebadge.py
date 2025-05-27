@@ -97,8 +97,11 @@ from array import array
 from datetime import datetime
 from pathlib import Path
 
-from bdfparser import Font
-
+try:
+    from bdfparser import Font
+except ImportError:
+    Font = None
+    print("bdfparser is not installed which is necessary to load .bdf font files")
 __version = "0.15"
 
 
@@ -326,8 +329,9 @@ class SimpleTextAndIcons:
         self.bitmap_preloaded = [([], 0)]
         self.bitmaps_preloaded_unused = False
         self.kanji_fonts = []
-        for path in Path("./fonts/").glob("*.bdf"):
-            self.kanji_fonts.append(Font(str(path)))
+        if Font:  # check if bdfparser is loaded
+            for path in Path("./fonts/").glob("*.bdf"):
+                self.kanji_fonts.append(Font(str(path)))
 
     def add_preload_img(self, filename):
         """Still used by main, but deprecated. PLease use ":"-notation for bitmap() / bitmap_text()"""

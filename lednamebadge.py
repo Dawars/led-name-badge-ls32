@@ -99,7 +99,7 @@ from pathlib import Path
 
 from bdfparser import Font
 
-__version = "0.14"
+__version = "0.15"
 
 
 class SimpleTextAndIcons:
@@ -326,8 +326,9 @@ class SimpleTextAndIcons:
         self.bitmap_preloaded = [([], 0)]
         self.bitmaps_preloaded_unused = False
         self.kanji_fonts = []
-        for path in Path("./gfx/").glob("*.bdf"):
+        for path in Path("./fonts/").glob("*.bdf"):
             self.kanji_fonts.append(Font(str(path)))
+
     def add_preload_img(self, filename):
         """Still used by main, but deprecated. PLease use ":"-notation for bitmap() / bitmap_text()"""
         self.bitmap_preloaded.append(SimpleTextAndIcons.bitmap_img(filename))
@@ -354,24 +355,26 @@ class SimpleTextAndIcons:
             return self.bitmap_preloaded[ord(ch)]
         if ch not in SimpleTextAndIcons.char_offsets and self.kanji_fonts:
             # Use BDF font
+            glyph = None
             for fonts in self.kanji_fonts:
-                glyph = fonts.glyph(ch)
-                if glyph:
+                if ord(ch) in fonts.glyphs:
+                    glyph = fonts.glyph(ch)
                     break
             if not glyph:
                 print('Warning: Unknown character %s' % ch)
                 return self.bitmap_char("?")
-            img = glyph.draw(2)
-            img_cropped = img.crop(11+1, 11, 0, 0)  # width 11 + space, height 11
+            img = glyph.draw(0)
+            img_cropped = img.clone().crop(glyph.meta["dwx0"], 11, 0, 0) # add space based on advance property
 
             # Get raw bitmap data row-by-row
             # Each row is a list of 0s and 1s
             bitmap_rows = img_cropped.bindata
-            width_chars = len(bitmap_rows[0])
+            width_chars = img_cropped.width()
             result = []
 
             # split wider chars to multiple bytes
             for i in range(math.ceil(width_chars / 8)):
+                subchar = []
                 for row in bitmap_rows:
                     byte = 0
                     chars = row[i * 8:(1 + i) * 8]
@@ -379,8 +382,12 @@ class SimpleTextAndIcons:
                         byte = (byte << 1) | int(bit)
                     byte <<= (8 - len(chars))  # pad remaining bits if row is short
                     assert byte <= 255
-                    result.append(byte)
+                    subchar.append(byte)
 
+                # pad vertically if needed
+                for _ in range(11 - len(bitmap_rows)):
+                    result.insert(0, 0)
+                result.extend(subchar)
             return tuple(result), width_chars
         o = SimpleTextAndIcons.char_offsets[ch]
         return SimpleTextAndIcons.font_11x44[o:o + 11], 8

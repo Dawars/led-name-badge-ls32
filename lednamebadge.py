@@ -470,7 +470,8 @@ class SimpleTextAndIcons:
             Otherwise, we take it as a string (with ":"-notation, see bitmap_text()).
         """
         if os.path.exists(arg):
-            return SimpleTextAndIcons.bitmap_img(arg)
+            buf, width = SimpleTextAndIcons.bitmap_img(arg)
+            return buf, [width]
         return self.bitmap_text(arg)
 
 
